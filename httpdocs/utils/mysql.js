@@ -7,7 +7,7 @@ dotenv.config();
  * General database utility functions
  */
 
-const createDatabaseConnection = () => 
+const createDatabaseConnection = (multipleStatements) => 
 {
     return mysql.createConnection
     (
@@ -15,29 +15,11 @@ const createDatabaseConnection = () =>
             host: process.env.MY_SQL_HOST,
             port: process.env.MY_SQL_PORT,
             user: process.env.MY_SQL_USER,
-            password: process.env.MY_SQL_PASSWORD,
-            database: process.env.MY_SQL_DATABASE
+            password: process.env.MY_SQL_PASSWORD || "",
+            database: process.env.MY_SQL_DATABASE,
+            multipleStatements: multipleStatements
         }
     );
-};
-
-const requestDatabase = (connection, query, values, res) =>
-{
-    return connection.query(query, values)
-        .then(results => ([ results ]))
-        .catch(err => 
-            {
-                const errorMessage = err.message;
-
-                return res.status(422).jsonp
-                (
-                    {
-                        "status": 422,
-                        "message": errorMessage
-                    }
-                );
-            }
-        );
 };
 
 async function requestDatabaseResponseless(connection, query, values)
@@ -47,14 +29,12 @@ async function requestDatabaseResponseless(connection, query, values)
 }
 
 /*
- * Response related database utility functions
+ * MySQL SELECT queries
  */
 
-async function getAllLinks()
+async function getExpiredLinks(connection)
 {
-    const connection = await createDatabaseConnection();
-
-    const query = "SELECT uuid, expiresOn FROM `links`";
+    const query = "SELECT `uuid`, `deleteExpiredDetails` FROM `links` WHERE `expiresOn` <= CURDATE();";
     const values = [];
 
     const results = await requestDatabaseResponseless(connection, query, values);
@@ -62,23 +42,59 @@ async function getAllLinks()
     return results;
 }
 
-async function getLink(res, id)
+async function getLinkByID(connection, id)
 {
-    const connection = await createDatabaseConnection();
-
-    const query = "SELECT link FROM `links` WHERE `id` = ?";
+    const query = "SELECT link, uuid FROM `links` WHERE `id` = ?";
     const values = [ id ];
 
-    const [ [ results ] ] = await requestDatabase(connection, query, values, res);
-    const result = results[0];
+    const [ result ] = await requestDatabaseResponseless(connection, query, values);
 
-    if (!result) 
-    {
-        res.redirect("https://blockyjar.dev/");
-        return;
-    }
+    return result;
+}
 
-    return result.link;
+async function getLinkDetails(connection, uuid)
+{
+    const query = "SELECT * FROM `link-impression-details` WHERE `uuid` = ?";
+    const values = [ uuid ];
+
+    const [ result ] = await requestDatabaseResponseless(connection, query, values);
+
+    return result;
+}
+
+/*
+ * MySQL UPDATE queries
+ */
+
+async function updateLinkImpressionDetails(connection, details, uuid)
+{
+    const query = "UPDATE `link-impression-details` SET `details` = ? WHERE `uuid` = ?";
+    const values = [ details, uuid ];
+    
+    await requestDatabaseResponseless(connection, query, values);
+}
+
+/*
+ * MySQL DELETE queries
+ */
+
+async function deleteLink(connection, uuid)
+{
+    const query = "DELETE FROM `links` WHERE `uuid` = ?";
+    const values = [ uuid ];
+    
+    await requestDatabaseResponseless(connection, query, values);
+}
+
+async function deleteLinkDetails(connection, uuid)
+{
+    const query = `DELETE FROM \`link-impression-details\` WHERE \`uuid\` = ?;
+                   DELETE FROM \`link-date-history\` WHERE \`uuid\` = ?;
+                   DELETE FROM \`link-url-history\` WHERE \`uuid\` = ?`;
+
+    const values = [ uuid, uuid, uuid ];
+    
+    await requestDatabaseResponseless(connection, query, values);
 }
 
 /*
@@ -88,8 +104,11 @@ async function getLink(res, id)
 module.exports =
 {
     createDatabaseConnection: createDatabaseConnection,
-    requestDatabase: requestDatabase,
     requestDatabaseResponseless: requestDatabaseResponseless,
-    getAllLinks: getAllLinks,
-    getLink: getLink
+    getExpiredLinks: getExpiredLinks,
+    getLinkByID: getLinkByID,
+    getLinkDetails: getLinkDetails,
+    updateLinkImpressionDetails: updateLinkImpressionDetails,
+    deleteLink: deleteLink,
+    deleteLinkDetails: deleteLinkDetails
 };

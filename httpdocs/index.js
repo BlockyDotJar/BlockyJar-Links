@@ -24,7 +24,7 @@ app.use((err, _req, res, _next) =>
 
 base.setup(app);
 
-const port = process.env.PORT || 30000;
+const port = process.env.PORT || 3003;
 
 app.listen(port);
 

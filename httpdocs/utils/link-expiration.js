@@ -2,25 +2,24 @@ const mysql = require("../utils/mysql");
 
 async function deleteExpiredLinks()
 {
-    const now = Date.now();
+    const connection = await mysql.createDatabaseConnection(true);
 
-    const links = await mysql.getAllLinks();
+    const links = await mysql.getExpiredLinks(connection);
     
     for (const link of links)
     {
         const uuid = link.uuid;
-        const expiresOn = link.expiresOn;
+        const deleteExpiredDetails = link.delete_expired_details;
 
-        if (now > expiresOn)
+        await mysql.deleteLink(connection, uuid);
+
+        if (deleteExpiredDetails)
         {
-            const connection = await mysql.createDatabaseConnection();
-
-            const query = "DELETE FROM `links` WHERE `uuid` = ?";
-            const values = [ uuid ];
-
-            mysql.requestDatabaseResponseless(connection, query, values);
+            await mysql.deleteLinkDetails(connection, uuid);
         }
     }
+
+    connection.end();
 }
 
 module.exports.deleteExpiredLinks = deleteExpiredLinks;
