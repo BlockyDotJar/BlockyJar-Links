@@ -9,7 +9,7 @@ async function deleteExpiredLinks()
     for (const link of links)
     {
         const uuid = link.uuid;
-        const deleteExpiredDetails = link.delete_expired_details;
+        const deleteExpiredDetails = link.deleteExpiredDetails;
 
         await mysql.deleteLink(connection, uuid);
 

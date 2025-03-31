@@ -21,11 +21,10 @@ async function redirect(res, id)
 
     if (!link) 
     {
-        return;
+        return res.redirect("https://blockyjar.dev/");
     }
 
     const linkImpressions = await mysql.getLinkDetails(connection, linkUUID);
-    const linkImpressionDetails = JSON.parse(linkImpressions.details);
 
     const now = new Date();
     const year = now.getFullYear();
@@ -33,43 +32,61 @@ async function redirect(res, id)
     const month = String(monthRaw + 1).padStart(2, "0");
     const currentYearMonth = `${year}-${month}`;
 
-    const totalCount = linkImpressionDetails.total_count;
+    let totalCount = 0;
+    let currentDetails = [ ];
 
-    let currentDetails = linkImpressionDetails.details;
-
-    const neededDetail = currentDetails.find(currentDetail =>
-    {
-        const yearMonth = currentDetail.yearMonth;
-        return yearMonth === currentYearMonth;
-    });
-
-    if (!neededDetail)
+    if (!linkImpressions)
     {
         currentDetails.push
         (
             {
-                "yearMonth": currentYearMonth,
+                "year_month": currentYearMonth,
                 "clicks": 1
             }
         );
     }
 
-    if (neededDetail)
+    if (linkImpressions)
     {
-        const neededClicks = neededDetail.clicks;
+        const linkImpressionDetails = JSON.parse(linkImpressions.details);
 
-        currentDetails = currentDetails.filter(detail =>
+        totalCount = linkImpressionDetails.total_count;
+        currentDetails = linkImpressionDetails.details;
+
+        const neededDetail = currentDetails.find(currentDetail =>
         {
-            return detail !== neededDetail;
+            const yearMonth = currentDetail.year_month;
+            return yearMonth === currentYearMonth;
         });
 
-        currentDetails.push
-        (
+        if (!neededDetail)
+        {
+            currentDetails.push
+            (
+                {
+                    "year_month": currentYearMonth,
+                    "clicks": 1
+                }
+            );
+        }
+
+        if (neededDetail)
+        {
+            currentDetails = currentDetails.filter(detail =>
             {
-                "yearMonth": currentYearMonth,
-                "clicks": neededClicks + 1
-            }
-        );
+                return detail !== neededDetail;
+            });
+
+            const neededClicks = neededDetail.clicks;
+
+            currentDetails.push
+            (
+                {
+                    "year_month": currentYearMonth,
+                    "clicks": neededClicks + 1
+                }
+            );
+        }
     }
 
     const details = JSON.stringify
@@ -78,7 +95,7 @@ async function redirect(res, id)
         "details": currentDetails
     });
     
-    await mysql.updateLinkImpressionDetails(connection, details, linkUUID);
+    linkImpressions ? await mysql.updateLinkImpressionDetails(connection, details, linkUUID) : await mysql.insertLinkImpressionDetails(connection, details, linkUUID);
 
     connection.end();
 

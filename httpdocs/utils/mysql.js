@@ -63,6 +63,30 @@ async function getLinkDetails(connection, uuid)
 }
 
 /*
+ * MySQL INSERT queries
+ */
+
+async function insertLinkImpressionDetails(connection, details, uuid)
+{
+    const query = "INSERT INTO `link-impression-details`(`details`, `uuid`) VALUES(?, ?)";
+    const values = [ details, uuid ];
+    
+    await requestDatabaseResponseless(connection, query, values);
+}
+
+/*
+ * MySQL UPDATE queries
+ */
+
+async function updateLinkImpressionDetails(connection, details, uuid)
+{
+    const query = "UPDATE `link-impression-details` SET `details` = ? WHERE `uuid` = ?";
+    const values = [ details, uuid ];
+    
+    await requestDatabaseResponseless(connection, query, values);
+}
+
+/*
  * MySQL UPDATE queries
  */
 
@@ -108,6 +132,7 @@ module.exports =
     getExpiredLinks: getExpiredLinks,
     getLinkByID: getLinkByID,
     getLinkDetails: getLinkDetails,
+    insertLinkImpressionDetails: insertLinkImpressionDetails,
     updateLinkImpressionDetails: updateLinkImpressionDetails,
     deleteLink: deleteLink,
     deleteLinkDetails: deleteLinkDetails
