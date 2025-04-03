@@ -41,7 +41,7 @@ async function redirect(res, id)
         (
             {
                 "year_month": currentYearMonth,
-                "clicks": 1
+                "impressions": 1
             }
         );
     }
@@ -65,7 +65,7 @@ async function redirect(res, id)
             (
                 {
                     "year_month": currentYearMonth,
-                    "clicks": 1
+                    "impressions": 1
                 }
             );
         }
@@ -77,13 +77,13 @@ async function redirect(res, id)
                 return detail !== neededDetail;
             });
 
-            const neededClicks = neededDetail.clicks;
+            const neededImpressions = neededDetail.impressions;
 
             currentDetails.push
             (
                 {
                     "year_month": currentYearMonth,
-                    "clicks": neededClicks + 1
+                    "impressions": neededImpressions + 1
                 }
             );
         }
